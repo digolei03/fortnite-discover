@@ -80,6 +80,17 @@ jobs:
         continue-on-error: true
         run: python -m collectors.history --scope ${{ steps.scope.outputs.history }}
 
+      # Colocacao pela API OFICIAL da Epic, via uefntoolkit. Só roda se os
+      # secrets existirem - sem eles o repositorio segue funcionando com o
+      # fortnite.gg como fonte de colocacao.
+      - name: exposicao (API da Epic via uefntoolkit)
+        if: env.UEFN_DATA_API_URL != '' && env.UEFN_DATA_API_TOKEN != ''
+        continue-on-error: true
+        env:
+          UEFN_DATA_API_URL: ${{ secrets.UEFN_DATA_API_URL }}
+          UEFN_DATA_API_TOKEN: ${{ secrets.UEFN_DATA_API_TOKEN }}
+        run: python -m collectors.uefn_exposure
+
       # Sem continue-on-error: se isto falhar, o dia esta perdido e queremos
       # que o workflow fique vermelho.
       - name: metricas (Epic API)

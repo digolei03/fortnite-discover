@@ -130,16 +130,41 @@ data/
 O HTML bruto é salvo sempre. O parser **vai** quebrar quando o fortnite.gg mudar
 o layout; com o HTML guardado, é só reprocessar em vez de perder o dia.
 
-## Premissa não verificada
+## Não existe "o rank" — existe uma distribuição
 
-**O rank do fortnite.gg pode ser personalizado por jogador.** O Discover passou a
-ser personalizado, e não sabemos se estes números são globais ou a visão de uma
-conta específica. Se forem personalizados, "posição" não é um número e sim uma
-distribuição, e parte da modelagem muda.
+Isto começou como premissa não verificada e foi **confirmado** pela assinatura da
+API oficial da Epic. A Discover é servida por:
 
-Teste (precisa de pessoas e contas do estúdio, não dá para automatizar): várias
-contas com históricos de jogo bem diferentes — uma que só joga PVP, uma que só
-joga tycoon, uma conta nova — abrem o mesmo painel do Discover no mesmo minuto e
-comparam a ordem. Ordens diferentes = personalizado.
+```
+POST fn-service-discovery-live-public.ogs.live.on.epicgames.com
+     /api/v2/discovery/surface/CreativeDiscoverySurface_Frontend
+     ?appId=Fortnite&stream=<branch>
+```
 
-Vale fazer antes de tirar conclusões fortes de posição.
+com um corpo que é um **perfil de jogador**:
+
+```json
+{ "playerId": "...", "matchmakingRegion": "BR|NAE|EU", "platform": "...",
+  "locale": "...", "rating": "TEEN", "ratingAuthority": "ESRB",
+  "isCabined": false, "numLocalPlayers": 1 }
+```
+
+e uma resposta que traz `panels[]` mais **`testVariantName` / `testName` /
+`testAnalyticsId`** — a Epic roda testes A/B na Discover e informa em qual
+variante aquela chamada caiu.
+
+**Portanto a posição varia por playerId, região, plataforma, locale, rating e
+variante de teste.** O número do fortnite.gg é *uma* leitura dessa distribuição.
+Qualquer análise de posição neste repositório precisa dizer de qual perfil o
+número veio — e a boa notícia é que a variante vem no dado, então dá para
+controlar por ela em vez de apenas constatar o problema.
+
+O `collectors/uefn_exposure.py` lê essa fonte (via uefntoolkit), com as
+dimensões explícitas em `data/exposure_targets`. O caminho do fortnite.gg
+continua valendo como referência cruzada e pelo histórico retroativo.
+
+### Risco de conta
+
+Chamar a API de Discovery exige device auth de uma conta Epic e as chamadas são
+feitas como se fossem de um jogador. **Use uma conta secundária, nunca a
+principal do estúdio**, e mantenha a cadência baixa.
