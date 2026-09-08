@@ -20,6 +20,29 @@ ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
 CONFIG = ROOT / "config"
 
+
+def _load_dotenv() -> None:
+    """Carrega .env da raiz, sem sobrescrever o que ja veio do ambiente.
+
+    Assim o mesmo codigo funciona local (arquivo .env, git-ignored) e no
+    Actions (secrets viram variaveis de ambiente e tem precedencia).
+    Implementado a mao para nao adicionar dependencia so por isto.
+    """
+    path = ROOT / ".env"
+    if not path.exists():
+        return
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key, value = key.strip(), value.strip().strip('"').strip("'")
+        if key and value and key not in os.environ:
+            os.environ[key] = value
+
+
+_load_dotenv()
+
 FGG = "https://fortnite.gg"
 EPIC = "https://api.fortnite.com/ecosystem/v1"
 
