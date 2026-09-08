@@ -1,0 +1,8 @@
+{
+  "_comment": "Perfis coletados. Cada um e uma leitura diferente da Discover - a posicao muda conforme regiao, plataforma e locale. Comece pequeno: cada perfil e uma chamada autenticada como jogador.",
+  "profiles": [
+    { "region": "BR",  "platform": "Windows", "locale": "pt-BR" },
+    { "region": "NAE", "platform": "Windows", "locale": "en" },
+    { "region": "EU",  "platform": "Windows", "locale": "en" }
+  ]
+}

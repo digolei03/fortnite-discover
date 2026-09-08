@@ -159,9 +159,28 @@ Qualquer análise de posição neste repositório precisa dizer de qual perfil o
 número veio — e a boa notícia é que a variante vem no dado, então dá para
 controlar por ela em vez de apenas constatar o problema.
 
-O `collectors/uefn_exposure.py` lê essa fonte (via uefntoolkit), com as
-dimensões explícitas em `data/exposure_targets`. O caminho do fortnite.gg
-continua valendo como referência cruzada e pelo histórico retroativo.
+O `collectors/discover_surface.py` coleta essa fonte direto, um snapshot por
+perfil de `config/profiles.json`, gravando região, plataforma, locale e
+`test_variant_name` em cada linha. O caminho do fortnite.gg continua valendo
+como referência cruzada e pelo histórico retroativo.
+
+### A cadeia de autenticação
+
+Nada disso é documentado pela Epic. O contrato está em `collectors/epic_auth.py`:
+
+1. `GET fortnite/api/version` → a versão viva. O `stream` de todas as chamadas
+   seguintes é `++Fortnite+Release-<versão>`, resolvido em tempo de execução —
+   fixar isso quebra sozinho na próxima temporada.
+2. `POST account/api/oauth/token` com `grant_type=device_auth` e
+   `token_type=eg1` → access token.
+3. `GET fortnite/api/discovery/accessToken/<branch>` → token de discovery, que
+   vai no header `X-Epic-Access-Token`. O branch precisa ir percent-encoded.
+4. `POST v2/discovery/surface/<surface>` com o perfil no corpo → `panels[]`,
+   cada um com `firstPage.results[]` (`linkCode`, `globalCCU`, `isVisible`,
+   `lockStatus`). Painel com `hasMore` pagina em `.../surface/<surface>/page`.
+
+Gere o device auth com `python -m tools.bootstrap_device_auth <código>`. Ele
+imprime os três valores localmente — não passam por lugar nenhum.
 
 ### Risco de conta
 
