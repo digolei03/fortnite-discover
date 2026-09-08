@@ -38,6 +38,12 @@ jobs:
   collect:
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    # No nivel do JOB de proposito: um `env:` dentro do passo nao esta visivel
+    # para o `if:` daquele mesmo passo, entao a condicao seria sempre falsa e o
+    # coletor nunca rodaria.
+    env:
+      UEFN_DATA_API_URL: ${{ secrets.UEFN_DATA_API_URL }}
+      UEFN_DATA_API_TOKEN: ${{ secrets.UEFN_DATA_API_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -86,9 +92,6 @@ jobs:
       - name: exposicao (API da Epic via uefntoolkit)
         if: env.UEFN_DATA_API_URL != '' && env.UEFN_DATA_API_TOKEN != ''
         continue-on-error: true
-        env:
-          UEFN_DATA_API_URL: ${{ secrets.UEFN_DATA_API_URL }}
-          UEFN_DATA_API_TOKEN: ${{ secrets.UEFN_DATA_API_TOKEN }}
         run: python -m collectors.uefn_exposure
 
       # Sem continue-on-error: se isto falhar, o dia esta perdido e queremos
