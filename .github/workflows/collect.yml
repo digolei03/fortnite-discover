@@ -43,7 +43,8 @@ jobs:
     # coletor nunca rodaria.
     env:
       UEFN_DATA_API_URL: ${{ secrets.UEFN_DATA_API_URL }}
-      UEFN_DATA_API_TOKEN: ${{ secrets.UEFN_DATA_API_TOKEN }}
+      UEFN_SUPABASE_ANON_KEY: ${{ secrets.UEFN_SUPABASE_ANON_KEY }}
+      UEFN_REFRESH_TOKEN: ${{ secrets.UEFN_REFRESH_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -90,7 +91,7 @@ jobs:
       # secrets existirem - sem eles o repositorio segue funcionando com o
       # fortnite.gg como fonte de colocacao.
       - name: exposicao (API da Epic via uefntoolkit)
-        if: env.UEFN_DATA_API_URL != '' && env.UEFN_DATA_API_TOKEN != ''
+        if: env.UEFN_DATA_API_URL != '' && env.UEFN_REFRESH_TOKEN != ''
         continue-on-error: true
         run: python -m collectors.uefn_exposure
 

@@ -27,14 +27,30 @@ coletor le o resultado ja consolidado pela edge function `discover-data-api`.
 
 CREDENCIAIS
 -----------
-Duas variaveis de ambiente, nunca commitadas e nunca impressas:
+As tabelas de exposicao exigem nivel `admin` no discover-data-api, que e
+concedido a quem tem papel `admin` OU `editor` em `user_roles` - ou a quem
+apresenta a service role key.
 
-    UEFN_DATA_API_URL    ex.: https://<project-ref>.supabase.co
-    UEFN_DATA_API_TOKEN  JWT de um usuario com papel admin/editor
+NAO USE A SERVICE ROLE KEY AQUI. Ela ignora o RLS de TODAS as tabelas do
+projeto Supabase, e o projeto e de terceiro (KiKoZl1/uefntoolkit). Num
+repositorio publico isso seria expor a credencial-mestra de outra pessoa.
 
-As tabelas de exposicao exigem nivel `admin` no discover-data-api.
-Coloque as duas num `.env` local (ignorado pelo .gitignore) ou em
-Settings > Secrets do repositorio para uso no Actions.
+Use um usuario dedicado com papel `editor`. Como o JWT de usuario expira em
+~1h (inutil para cron), o caminho normal e o refresh token:
+
+    UEFN_DATA_API_URL        https://<project-ref>.supabase.co
+    UEFN_SUPABASE_ANON_KEY   chave anon (publica por design, ja vai no frontend)
+    UEFN_REFRESH_TOKEN       refresh token do usuario editor (longa duracao)
+
+Alternativa para rodar a mao, sem refresh:
+
+    UEFN_DATA_API_TOKEN      access token ja valido (expira em ~1h)
+
+Local: num `.env` na raiz (ignorado pelo .gitignore).
+Actions: Settings > Secrets and variables > Actions.
+
+Se o refresh token vazar, o dano e leitura como aquele usuario editor, e a
+revogacao e deslogar/rotacionar so ele - nao o projeto inteiro.
 """
 from __future__ import annotations
 
@@ -58,14 +74,15 @@ class DataApi:
 
     def __init__(self) -> None:
         self.base = (os.environ.get("UEFN_DATA_API_URL") or "").rstrip("/")
-        self.token = os.environ.get("UEFN_DATA_API_TOKEN") or ""
-        if not self.base or not self.token:
-            raise SystemExit(
-                "Faltam credenciais. Defina UEFN_DATA_API_URL e UEFN_DATA_API_TOKEN "
-                "(num .env local ou nos secrets do repositorio). As tabelas de "
-                "exposicao exigem um token com papel admin/editor."
-            )
+        if not self.base:
+            raise SystemExit("Falta UEFN_DATA_API_URL (num .env local ou nos secrets).")
+
         import httpx
+        self._httpx = httpx
+        self.token = os.environ.get("UEFN_DATA_API_TOKEN") or ""
+        if not self.token:
+            self.token = self._refresh_access_token()
+
         self._client = httpx.Client(
             timeout=60.0,
             headers={
@@ -74,6 +91,39 @@ class DataApi:
                 "apikey": self.token,
             },
         )
+
+    def _refresh_access_token(self) -> str:
+        """Troca o refresh token por um access token novo.
+
+        JWT de usuario dura ~1h, entao guardar o access token num secret nao
+        funciona para execucao agendada. O refresh token e de longa duracao e
+        fica limitado ao usuario editor.
+        """
+        anon = os.environ.get("UEFN_SUPABASE_ANON_KEY") or ""
+        refresh = os.environ.get("UEFN_REFRESH_TOKEN") or ""
+        if not anon or not refresh:
+            raise SystemExit(
+                "Faltam credenciais. Defina UEFN_SUPABASE_ANON_KEY + UEFN_REFRESH_TOKEN "
+                "(recomendado), ou UEFN_DATA_API_TOKEN para uma execucao manual.\n"
+                "NAO use a service role key: ela ignora o RLS do projeto inteiro."
+            )
+        resp = self._httpx.post(
+            self.base + "/auth/v1/token",
+            params={"grant_type": "refresh_token"},
+            headers={"apikey": anon, "Content-Type": "application/json"},
+            json={"refresh_token": refresh},
+            timeout=30.0,
+        )
+        if resp.status_code != 200:
+            raise SystemExit(
+                "Falha ao renovar o token (HTTP %d). O refresh token pode ter sido "
+                "revogado ou ja usado - gere um novo logando como o usuario editor."
+                % resp.status_code)
+        token = (resp.json() or {}).get("access_token")
+        if not token:
+            raise SystemExit("A renovacao nao devolveu access_token.")
+        log.info("access token renovado a partir do refresh token")
+        return token
 
     def select(self, table, columns="*", filters=None, order=None, limit=PAGE_LIMIT):
         payload: Dict[str, Any] = {"table": table, "columns": columns, "limit": limit}
