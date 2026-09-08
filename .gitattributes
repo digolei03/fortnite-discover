@@ -1,0 +1,6 @@
+# Dados sao binarios: nada de tentar diff nem normalizar quebra de linha.
+*.parquet binary -diff -text
+*.gz      binary -diff -text
+
+# Nao contar dados nas estatisticas de linguagem do repo
+data/** linguist-generated=true
