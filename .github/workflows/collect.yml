@@ -1,17 +1,28 @@
 name: collect
 
-# Duas execucoes por dia. Nao e para ter granularidade maior - e redundancia
-# barata: o cron do GitHub Actions atrasa 10-30 min e as vezes PULA execucoes.
-# Como a janela de metricas da Epic e de ~7 dias sem backfill, uma execucao
-# perdida vira dado perdido para sempre.
+# Os coletores nao rodam todos na mesma cadencia, por dois motivos: manter o
+# volume de requisicoes ao fortnite.gg baixo, e caber na cota do Actions
+# (2.000 min/mes em repositorio privado; ilimitado em publico).
+#
+#   - `metrics` (Epic) e o UNICO genuinamente diario: a janela retroativa e de
+#     ~7 dias e nao ha backfill. Dia nao coletado e dia perdido para sempre.
+#     Roda 2x ao dia como redundancia, porque o cron do Actions atrasa 10-30 min
+#     e as vezes PULA execucoes.
+#   - `history` NAO precisa ser diario: os endpoints devolvem a serie COMPLETA
+#     a cada chamada, entao a coleta de hoje ja contem a de ontem. Semanal para
+#     todas as ilhas, diario apenas para as nossas.
+#   - `ranks` e barato (~8s) e so existe no dia corrente, entao roda sempre.
+#
+# ~445 min/mes, contra ~1.440 se tudo rodasse 2x ao dia.
 on:
   schedule:
-    - cron: "10 6 * * *"
-    - cron: "10 18 * * *"
+    - cron: "10 6 * * *"     # diario
+    - cron: "10 18 * * *"    # diario
+    - cron: "40 4 * * 0"     # domingo: historico completo de todas as ilhas
   workflow_dispatch:
     inputs:
       full_history:
-        description: "Recoletar historico de TODAS as ilhas conhecidas (lento)"
+        description: "Recoletar historico de TODAS as ilhas conhecidas (~25 min)"
         type: boolean
         default: false
 
@@ -37,9 +48,25 @@ jobs:
 
       - run: pip install -e .
 
-      # Scraping do fortnite.gg: frágil (Cloudflare, mudanca de layout).
+      # Historico completo so no cron de domingo ou quando pedido a mao.
+      - name: decidir escopo do historico
+        id: scope
+        run: |
+          if [ "${{ inputs.full_history }}" = "true" ] || \
+             [ "${{ github.event.schedule }}" = "40 4 * * 0" ]; then
+            echo "history=all" >> "$GITHUB_OUTPUT"
+          else
+            echo "history=ours" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Scraping do fortnite.gg: fragil (Cloudflare, mudanca de layout).
       # continue-on-error para que uma falha aqui NAO impeca a coleta de
       # metricas da Epic, que e a unica sem backfill.
+      #
+      # ATENCAO: os IPs do GitHub Actions sao de datacenter e o Cloudflare pode
+      # bloquea-los mesmo com curl_cffi. Se isto passar a falhar sempre, mova
+      # ranks/islands/history para uma maquina do estudio e deixe so `metrics`
+      # aqui - assim a parte insubstituivel continua protegida.
       - name: ranks (fortnite.gg)
         id: ranks
         continue-on-error: true
@@ -49,14 +76,9 @@ jobs:
         continue-on-error: true
         run: python -m collectors.islands
 
-      - name: historico de colocacao
+      - name: historico de colocacao (${{ steps.scope.outputs.history }})
         continue-on-error: true
-        run: |
-          if [ "${{ inputs.full_history }}" = "true" ]; then
-            python -m collectors.history --scope all
-          else
-            python -m collectors.history --scope today
-          fi
+        run: python -m collectors.history --scope ${{ steps.scope.outputs.history }}
 
       # Sem continue-on-error: se isto falhar, o dia esta perdido e queremos
       # que o workflow fique vermelho.
