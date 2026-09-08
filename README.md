@@ -169,9 +169,17 @@ número veio — e a boa notícia é que a variante vem no dado, então dá para
 controlar por ela em vez de apenas constatar o problema.
 
 O `collectors/discover_surface.py` coleta essa fonte direto, um snapshot por
-perfil de `config/profiles.json`, gravando região, plataforma, locale e
-`test_variant_name` em cada linha. O caminho do fortnite.gg continua valendo
-como referência cruzada e pelo histórico retroativo.
+perfil de `config/profiles.json`.
+
+**Está INATIVO.** Precisa de um par `EPIC_OAUTH_CLIENT_ID` / `CLIENT_SECRET` de
+um cliente do Fortnite que aceite `authorization_code` e `device_auth`, e esse
+par não estava disponível. O passo no workflow é pulado enquanto os secrets não
+existirem, então nada quebra.
+
+**A fonte de colocação em uso é o fortnite.gg** (`collectors/history.py`), que
+cobre o mesmo terreno com duas vantagens — histórico retroativo de anos e nenhum
+risco de conta — e uma desvantagem: é a leitura de um perfil só, sem os rótulos
+de cohort e variante. Ver a seção sobre a distribuição de ranks acima.
 
 ### A cadeia de autenticação
 
