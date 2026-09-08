@@ -23,7 +23,10 @@ SELECT DISTINCT
                           'Music', 'Party & Mini Games', 'Roleplaying & Social',
                           'Deathrun & Platformer', 'Adventure & RPG', 'Sports & Racing',
                           'Music & Rhythm')                             THEN 'genre'
-        WHEN row_name IN ('New')                                        THEN 'new'
+        WHEN row_name IN ('New', 'Updated')                             THEN 'lifecycle'
+        -- "For You" e declaradamente personalizada por historico de jogo:
+        -- comparar a posicao dela entre perfis nao mede nada.
+        WHEN row_name IN ('For You')                                    THEN 'personalized'
         WHEN row_name IN ('Popular', 'Top Rated', 'Trending', 'Trending Variety',
                           'Most Engaging', 'People Love', 'Top 10',
                           'Great With Friends', 'Variety')              THEN 'algorithmic'

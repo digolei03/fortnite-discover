@@ -153,6 +153,15 @@ e uma resposta que traz `panels[]` mais **`testVariantName` / `testName` /
 `testAnalyticsId`** — a Epic roda testes A/B na Discover e informa em qual
 variante aquela chamada caiu.
 
+A documentação publicada pela Epic confirma os dois eixos, e não deixa margem:
+
+> "Genre row order and what position your island appears within a genre row
+> differs from player to player, depending on their play history and signals."
+
+> "The rows that players see in Discover, and the order they are listed, can
+> change based on the player's cohort (age rating, platform, region,
+> personalization opt-in)."
+
 **Portanto a posição varia por playerId, região, plataforma, locale, rating e
 variante de teste.** O número do fortnite.gg é *uma* leitura dessa distribuição.
 Qualquer análise de posição neste repositório precisa dizer de qual perfil o
@@ -181,6 +190,21 @@ Nada disso é documentado pela Epic. O contrato está em `collectors/epic_auth.p
 
 Gere o device auth com `python -m tools.bootstrap_device_auth <código>`. Ele
 imprime os três valores localmente — não passam por lugar nenhum.
+
+### O que este coletor NÃO mede
+
+`config/profiles.json` varia região, plataforma e locale, mas todos os perfis
+usam a **mesma conta**. Isso cobre o eixo de *cohort* da segunda citação acima;
+não cobre o primeiro, que é a personalização por histórico de jogo.
+
+Medir esse eixo exige **várias contas com históricos diferentes** — uma que só
+joga PVP, uma que só joga tycoon, uma conta nova — coletando ao mesmo tempo.
+Enquanto isso não existir, trate qualquer comparação de posição entre perfis
+como medindo cohort, nunca personalização.
+
+A row `For You` é declaradamente personalizada por histórico; ela fica separada
+na taxonomia (`row_kind = 'personalized'`) e não deve entrar em comparação
+entre perfis.
 
 ### Risco de conta
 
