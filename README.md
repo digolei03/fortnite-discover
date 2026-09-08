@@ -191,20 +191,33 @@ Nada disso é documentado pela Epic. O contrato está em `collectors/epic_auth.p
 Gere o device auth com `python -m tools.bootstrap_device_auth <código>`. Ele
 imprime os três valores localmente — não passam por lugar nenhum.
 
-### O que este coletor NÃO mede
+### O que este coletor NÃO mede — e por que tudo bem
 
 `config/profiles.json` varia região, plataforma e locale, mas todos os perfis
-usam a **mesma conta**. Isso cobre o eixo de *cohort* da segunda citação acima;
-não cobre o primeiro, que é a personalização por histórico de jogo.
+usam a **mesma conta**. Isso cobre o eixo de *cohort* da segunda citação acima.
+Não cobre o primeiro, a personalização por histórico de jogo — para isso seriam
+necessárias várias contas com históricos realmente distintos.
 
-Medir esse eixo exige **várias contas com históricos diferentes** — uma que só
-joga PVP, uma que só joga tycoon, uma conta nova — coletando ao mesmo tempo.
-Enquanto isso não existir, trate qualquer comparação de posição entre perfis
-como medindo cohort, nunca personalização.
+**Isso é uma limitação aceita, não uma pendência.** Contas Epic são gratuitas,
+mas o que faz a personalização divergir é histórico de jogo, e construir
+históricos distintos custa horas de playtime humano. O retorno não paga.
+
+O que importa é que a limitação não atinge a pergunta que o projeto existe para
+responder. Duas perguntas diferentes:
+
+- *"Em que posição meu jogo está?"* — exige a distribuição inteira. Não é
+  respondível, por ninguém, nem pelo fortnite.gg.
+- *"Meu jogo subiu ou desceu, e o que mudou junto?"* — **respondível com uma
+  conta só**, desde que seja sempre a mesma. Perfil constante faz o viés ficar
+  fixo e sair na diferença; a variação no tempo continua sendo sinal limpo.
+
+A segunda é a que decide investimento. Portanto: **nunca compare posição
+absoluta com a de outro criador ou de outra ferramenta.** Compare a série
+temporal do mesmo perfil consigo mesma.
 
 A row `For You` é declaradamente personalizada por histórico; ela fica separada
-na taxonomia (`row_kind = 'personalized'`) e não deve entrar em comparação
-entre perfis.
+na taxonomia (`row_kind = 'personalized'`) e não deve entrar em nenhuma
+comparação.
 
 ### Risco de conta
 
